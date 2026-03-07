@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const performanceMetrics = [
   { label: "Avg. Decision Score", value: 83, icon: Target, color: "text-primary" },
@@ -28,7 +29,16 @@ export default function Training() {
           <h1 className="text-xl font-bold text-foreground tracking-tight">Training & Reports</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Performance tracking and training session management</p>
         </div>
-        <Button className="gap-2">
+        <Button
+          className="gap-2"
+          onClick={() => {
+            toast.promise(new Promise(resolve => setTimeout(resolve, 1500)), {
+              loading: 'Initializing new training session environment...',
+              success: 'Session environment deployed. Ready for trainee connection.',
+              error: 'Failed to initialize session'
+            });
+          }}
+        >
           <Play className="h-4 w-4" /> New Session
         </Button>
       </div>
@@ -140,7 +150,19 @@ export default function Training() {
                 </TableCell>
                 <TableCell>
                   {session.status === "completed" && (
-                    <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-[10px] gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toast.promise(new Promise(resolve => setTimeout(resolve, 2000)), {
+                          loading: 'Loading session telemetry...',
+                          success: `Replay environment for ${session.name} ready.`,
+                          error: 'Failed to load replay'
+                        });
+                      }}
+                    >
                       Replay <ChevronRight className="h-3 w-3" />
                     </Button>
                   )}

@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { EntityGraph } from "@/components/EntityGraph";
 
 const typeIcons: Record<string, React.ElementType> = {
   person: User, asset: Bot, infrastructure: Building2, environment: TreePine,
@@ -144,10 +145,11 @@ export default function Entities() {
                 </div>
               </div>
 
-              <Tabs defaultValue="attributes" className="p-4">
+              <Tabs defaultValue="graph" className="p-4">
                 <TabsList className="bg-secondary/50 w-full">
+                  <TabsTrigger value="graph" className="flex-1 text-[10px]">Graph</TabsTrigger>
                   <TabsTrigger value="attributes" className="flex-1 text-[10px]">Attributes</TabsTrigger>
-                  <TabsTrigger value="relationships" className="flex-1 text-[10px]">Relationships</TabsTrigger>
+                  <TabsTrigger value="relationships" className="flex-1 text-[10px]">Links</TabsTrigger>
                   <TabsTrigger value="location" className="flex-1 text-[10px]">Location</TabsTrigger>
                 </TabsList>
 
@@ -191,6 +193,10 @@ export default function Entities() {
                   <p className="text-[10px] text-muted-foreground text-center mt-2">
                     Grid: {selected.location.x}, {selected.location.y}
                   </p>
+                </TabsContent>
+
+                <TabsContent value="graph" className="mt-3">
+                  <EntityGraph centerEntity={selected} allEntities={allEntities} />
                 </TabsContent>
               </Tabs>
             </motion.div>
