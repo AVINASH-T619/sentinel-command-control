@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { mockScenarios, mockAssets, getAssetIcon, getStatusColor } from "@/data/mockData";
-import { Flame, Waves, Mountain, Zap, Users, Shield, Crosshair, Activity, Play, Pause, RotateCcw, SkipForward, ChevronRight, Clock, Star, X, TerminalSquare, Network } from "lucide-react";
+import { mockScenarios, mockAssets, Asset, AssetType, getAssetIcon, getStatusColor } from "@/data/mockData";
+import { Flame, Waves, Mountain, Zap, Users, Shield, Crosshair, Activity, Play, Pause, RotateCcw, SkipForward, Clock, Star, X, TerminalSquare, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { MonteCarloDashboard } from "@/components/MonteCarloDashboard";
+import { SimulationMap } from "@/components/simulation/SimulationMap";
 
 const iconMap: Record<string, React.ElementType> = {
   Flame, Waves, Mountain, Zap, Users, Shield, Crosshair, Activity,
@@ -16,12 +17,33 @@ const iconMap: Record<string, React.ElementType> = {
 
 const difficultyLabels = ["", "Beginner", "Easy", "Moderate", "Hard", "Expert"];
 
-// Pre-map icons for assets
 import * as LucideIcons from "lucide-react";
 const renderAssetIcon = (iconName: string) => {
   const Icon = (LucideIcons as any)[iconName] || LucideIcons.Box;
   return <Icon className="h-3 w-3" />;
 };
+
+export interface PlacedEntity {
+  id: string;
+  name: string;
+  type: AssetType;
+  lat: number;
+  lng: number;
+  status: "active" | "idle";
+  batteryLevel: number;
+}
+
+const ASSET_PALETTE: { type: AssetType; label: string }[] = [
+  { type: "uav", label: "Recon UAV" },
+  { type: "drone", label: "Cargo Drone" },
+  { type: "robot", label: "Rescue Bot" },
+  { type: "ugv", label: "Patrol UGV" },
+  { type: "vehicle", label: "Command Vehicle" },
+  { type: "sensor", label: "Sensor Array" },
+  { type: "camera", label: "Surveillance Cam" },
+];
+
+let entityCounter = 0;
 
 export default function Simulations() {
   const [selectedLibraryId, setSelectedLibraryId] = useState<string | null>(null);
@@ -31,11 +53,12 @@ export default function Simulations() {
   const [isRunning, setIsRunning] = useState<Record<string, boolean>>({});
   const [simSpeed, setSimSpeed] = useState([1]);
   const [simTime, setSimTime] = useState<Record<string, number>>({});
+  const [placedEntities, setPlacedEntities] = useState<PlacedEntity[]>([]);
+  const [draggedAssetType, setDraggedAssetType] = useState<AssetType | null>(null);
 
   const selectedLibraryScenario = mockScenarios.find(s => s.id === selectedLibraryId);
   const activeWorkspaceScenario = mockScenarios.find(s => s.id === activeWorkspaceId);
 
-  // Auto-increment sim time
   useEffect(() => {
     const interval = setInterval(() => {
       setSimTime(prev => {
@@ -79,6 +102,31 @@ export default function Simulations() {
     setIsRunning(prev => ({ ...prev, [id]: false }));
     setSimTime(prev => ({ ...prev, [id]: 0 }));
   };
+
+  const handleDropOnMap = useCallback((lat: number, lng: number, type: AssetType) => {
+    entityCounter++;
+    const paletteItem = ASSET_PALETTE.find(p => p.type === type);
+    const newEntity: PlacedEntity = {
+      id: `placed-${entityCounter}`,
+      name: `${paletteItem?.label || type.toUpperCase()}-${String(entityCounter).padStart(2, "0")}`,
+      type,
+      lat,
+      lng,
+      status: "active",
+      batteryLevel: 100,
+    };
+    setPlacedEntities(prev => [...prev, newEntity]);
+  }, []);
+
+  const handleEntityMove = useCallback((id: string, lat: number, lng: number) => {
+    setPlacedEntities(prev =>
+      prev.map(e => e.id === id ? { ...e, lat, lng } : e)
+    );
+  }, []);
+
+  const handleRemoveEntity = useCallback((id: string) => {
+    setPlacedEntities(prev => prev.filter(e => e.id !== id));
+  }, []);
 
   return (
     <div className="p-6 space-y-6">
@@ -201,82 +249,64 @@ export default function Simulations() {
                 })}
               </div>
 
-              {activeWorkspaceScenario && (
+              {activeWorkspaceScenario && activeWorkspaceId && (
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                   {/* Left Column: Map & Controls */}
                   <div className="xl:col-span-2 space-y-4">
+                    {/* Asset Palette */}
+                    <div className="glass-card rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Drag Assets to Map
+                        </h4>
+                        <Badge variant="outline" className="text-[9px] h-4">
+                          {placedEntities.length} placed
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {ASSET_PALETTE.map(item => (
+                          <div
+                            key={item.type}
+                            draggable
+                            onDragStart={(e) => {
+                              setDraggedAssetType(item.type);
+                              e.dataTransfer.setData("assetType", item.type);
+                              e.dataTransfer.effectAllowed = "copy";
+                            }}
+                            onDragEnd={() => setDraggedAssetType(null)}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border/50 bg-secondary/30 cursor-grab active:cursor-grabbing hover:border-primary/40 hover:bg-primary/5 transition-all select-none"
+                          >
+                            <GripVertical className="h-3 w-3 text-muted-foreground/50" />
+                            <span className="text-primary">
+                              {renderAssetIcon(getAssetIcon(item.type))}
+                            </span>
+                            <span className="text-[10px] font-medium text-foreground">{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Leaflet Map with drop zone */}
                     <div className="glass-card rounded-xl overflow-hidden relative">
-                      <div className="absolute top-3 left-3 z-10">
+                      <div className="absolute top-3 left-3 z-[1000]">
                         <Badge variant="outline" className="bg-background/50 backdrop-blur-md border-border text-[10px]">
                           {activeWorkspaceScenario.name}
                         </Badge>
                       </div>
-                      <div className="relative aspect-[16/9] tactical-grid bg-secondary/30 overflow-hidden rounded-b-xl border-t border-border/50">
-                        {mockAssets.slice(0, 5).map((asset, i) => {
-                          const time = simTime[activeWorkspaceId] || 0;
-                          const isRun = isRunning[activeWorkspaceId];
-
-                          // Parametric offsets for simulated movement based on simTime
-                          const moveRadius = 10;
-                          const offsetX = isRun ? Math.sin(time * 0.05 + i) * moveRadius : Math.sin(i) * moveRadius;
-                          const offsetY = isRun ? Math.cos(time * 0.05 + i) * moveRadius : Math.cos(i) * moveRadius;
-
-                          return (
-                            <motion.div
-                              key={asset.id}
-                              className="absolute z-20 flex flex-col items-center justify-center"
-                              animate={{
-                                left: `${Math.max(5, Math.min(95, asset.location.x + offsetX))}%`,
-                                top: `${Math.max(5, Math.min(95, asset.location.y + offsetY))}%`
-                              }}
-                              transition={{ duration: 1.1, ease: "linear" }}
-                              style={{ transform: "translate(-50%, -50%)" }}
-                            >
-                              <div className={`p-2 rounded-full border-2 bg-background/90 backdrop-blur shadow-lg relative ${getStatusColor(asset.status).replace('text-', 'border-')}`}>
-                                {isRun && (
-                                  <motion.div
-                                    className="absolute inset-0 rounded-full border border-primary/50"
-                                    animate={{ scale: [1, 2.5], opacity: [0.8, 0] }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: i * 0.2 }}
-                                  />
-                                )}
-                                <div className={getStatusColor(asset.status)}>
-                                  {renderAssetIcon(getAssetIcon(asset.type))}
-                                </div>
-                              </div>
-                              <div className="mt-1.5 px-1.5 py-0.5 rounded bg-background/80 border border-border/50 text-[9px] font-mono whitespace-nowrap shadow-sm">
-                                {asset.name}
-                              </div>
-                            </motion.div>
-                          );
-                        })}
-
-                        {/* Event markers to show "action" */}
-                        {isRunning[activeWorkspaceId] && (
-                          <motion.div
-                            className="absolute z-10 rounded-full bg-severity-critical/10 border border-severity-critical/30"
-                            animate={{
-                              left: ["30%", "40%", "30%"],
-                              top: ["40%", "30%", "40%"],
-                              width: ["100px", "120px", "100px"],
-                              height: ["100px", "120px", "100px"],
-                            }}
-                            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                            style={{ transform: "translate(-50%, -50%)" }}
-                          >
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Flame className="h-6 w-6 text-severity-critical/50" />
-                            </div>
-                          </motion.div>
-                        )}
-
-                        <div className="absolute top-4 right-4 z-30 flex items-center gap-2 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm">
-                          <div className={`h-2 w-2 rounded-full ${isRunning[activeWorkspaceId] ? 'bg-severity-low animate-pulse' : 'bg-muted'}`} />
-                          <span className="text-[10px] font-medium text-foreground">
-                            {isRunning[activeWorkspaceId] ? 'Live Tracking' : 'Paused'}
-                          </span>
-                        </div>
+                      <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm">
+                        <div className={`h-2 w-2 rounded-full ${isRunning[activeWorkspaceId] ? 'bg-severity-low animate-pulse' : 'bg-muted'}`} />
+                        <span className="text-[10px] font-medium text-foreground">
+                          {isRunning[activeWorkspaceId] ? 'Live Tracking' : 'Paused'}
+                        </span>
                       </div>
+                      <SimulationMap
+                        placedEntities={placedEntities}
+                        onDropEntity={handleDropOnMap}
+                        onMoveEntity={handleEntityMove}
+                        draggedAssetType={draggedAssetType}
+                        isRunning={isRunning[activeWorkspaceId] || false}
+                        simTime={simTime[activeWorkspaceId] || 0}
+                      />
                     </div>
 
                     {/* Simulation Controls */}
@@ -288,7 +318,7 @@ export default function Simulations() {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleRun(activeWorkspaceId)}>
                           {isRunning[activeWorkspaceId] ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSimTime(prev => ({ ...prev, [activeWorkspaceId]: (prev[activeWorkspaceId] || 0) + 30 }))}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSimTime(prev => ({ ...prev, [activeWorkspaceId!]: (prev[activeWorkspaceId!] || 0) + 30 }))}>
                           <SkipForward className="h-4 w-4" />
                         </Button>
                       </div>
@@ -299,40 +329,49 @@ export default function Simulations() {
                       </div>
                       <div className="text-right">
                         <span className="text-xs font-mono text-foreground">
-                          {Math.floor((simTime[activeWorkspaceId] || 0) / 60)}:{String(Math.floor(simTime[activeWorkspaceId] || 0) % 60).padStart(2, "0")}
+                          {Math.floor((simTime[activeWorkspaceId!] || 0) / 60)}:{String(Math.floor(simTime[activeWorkspaceId!] || 0) % 60).padStart(2, "0")}
                         </span>
                         <p className="text-[9px] text-muted-foreground">SIM TIME</p>
                       </div>
                     </div>
 
-                    {/* Assets Panel */}
+                    {/* Placed entities list */}
                     <div className="glass-card rounded-xl p-4">
                       <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3 flex items-center justify-between">
                         <span>Deployed Assets</span>
-                        <Badge variant="secondary" className="text-[9px] px-1 h-4">{mockAssets.slice(0, 4).length}</Badge>
+                        <Badge variant="secondary" className="text-[9px] px-1 h-4">{placedEntities.length}</Badge>
                       </h4>
-                      <div className="space-y-2">
-                        {mockAssets.slice(0, 4).map(asset => (
-                          <div key={asset.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 border border-border/50">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded bg-background/50 text-primary">
-                                {renderAssetIcon(getAssetIcon(asset.type))}
+                      {placedEntities.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground/50 text-center py-4">
+                          Drag assets from the palette above and drop them on the map
+                        </p>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {placedEntities.map(entity => (
+                            <div key={entity.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 border border-border/50">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded bg-background/50 text-primary">
+                                  {renderAssetIcon(getAssetIcon(entity.type))}
+                                </div>
+                                <div>
+                                  <p className="text-[11px] font-medium text-foreground">{entity.name}</p>
+                                  <p className="text-[9px] text-muted-foreground font-mono">
+                                    {entity.lat.toFixed(4)}°N, {Math.abs(entity.lng).toFixed(4)}°W
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-[11px] font-medium text-foreground">{asset.name}</p>
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                  <span className={`h-1.5 w-1.5 rounded-full ${getStatusColor(asset.status).replace('text-', 'bg-')}`} />
-                                  {asset.status}
-                                </p>
-                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-severity-critical"
+                                onClick={() => handleRemoveEntity(entity.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
-                            <div className="text-right">
-                              <div className="text-[10px] text-foreground font-mono">{asset.batteryLevel}%</div>
-                              <Progress value={asset.batteryLevel} className="h-1 w-12" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
