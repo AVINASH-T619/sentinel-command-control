@@ -148,3 +148,45 @@
     background-size: 40px 40px;
   }
 }
+
+/* Leaflet overrides for dark tactical theme */
+.custom-leaflet-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: hsl(222 47% 11% / 0.95) !important;
+  color: hsl(210 40% 96%) !important;
+  border: 1px solid hsl(217 33% 17% / 0.8) !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: hsl(222 47% 11% / 0.95) !important;
+  border: 1px solid hsl(217 33% 17% / 0.8) !important;
+  border-top: none !important;
+  border-left: none !important;
+}
+
+.leaflet-popup-close-button {
+  color: hsl(215 20% 65%) !important;
+}
+
+.leaflet-container {
+  font-family: inherit !important;
+}
+
+.leaflet-control-zoom a {
+  background: hsl(222 47% 11% / 0.9) !important;
+  color: hsl(210 40% 96%) !important;
+  border-color: hsl(217 33% 17%) !important;
+}
+
+.leaflet-control-attribution {
+  background: hsl(222 47% 11% / 0.7) !important;
+  color: hsl(215 20% 50%) !important;
+  font-size: 9px !important;
+}
