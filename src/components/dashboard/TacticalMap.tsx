@@ -1,7 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { mockAssets, mockEntities } from "@/data/mockData";
 import { Plane, Bot, Truck, Car, Radio, Camera, Flame, Droplets, Building2 } from "lucide-react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+// Fix default marker icon issue in leaflet + bundlers
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+const MAP_CENTER: [number, number] = [42.347, -71.055];
+const MAP_ZOOM = 13;
 
 const assetIcons: Record<string, React.ElementType> = {
   uav: Plane, drone: Plane, robot: Bot, ugv: Truck,
@@ -9,16 +24,69 @@ const assetIcons: Record<string, React.ElementType> = {
 };
 
 const statusColors: Record<string, string> = {
-  active: "bg-severity-low", deployed: "bg-severity-low",
-  idle: "bg-severity-medium", offline: "bg-severity-critical",
-  maintenance: "bg-muted-foreground",
+  active: "#22c55e", deployed: "#22c55e",
+  idle: "#eab308", offline: "#ef4444",
+  maintenance: "#6b7280",
 };
+
+function createDivIcon(IconComponent: React.ElementType, color: string, isSelected: boolean) {
+  const markup = renderToStaticMarkup(
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      width: 28, height: 28, borderRadius: "50%",
+      background: "hsl(222 47% 11% / 0.9)", border: `2px solid ${color}`,
+      boxShadow: isSelected ? `0 0 12px ${color}` : `0 0 6px ${color}40`,
+    }}>
+      <IconComponent style={{ width: 14, height: 14, color }} />
+    </div>
+  );
+  return L.divIcon({
+    html: markup,
+    className: "custom-leaflet-icon",
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16],
+  });
+}
+
+function createInfraIcon(isDamaged: boolean) {
+  const color = isDamaged ? "#f97316" : "#94a3b8";
+  const markup = renderToStaticMarkup(
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      width: 24, height: 24, borderRadius: 4,
+      background: isDamaged ? "hsl(24 95% 53% / 0.15)" : "hsl(222 47% 11% / 0.8)",
+      border: `1.5px solid ${color}80`,
+    }}>
+      <Building2 style={{ width: 12, height: 12, color }} />
+    </div>
+  );
+  return L.divIcon({
+    html: markup,
+    className: "custom-leaflet-icon",
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -14],
+  });
+}
+
+function MapStyleController() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+  }, [map]);
+  return null;
+}
 
 export function TacticalMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const fireZone = mockEntities.find(e => e.subType === "Fire Zone");
   const floodZone = mockEntities.find(e => e.subType === "Flood Zone");
+
+  const selectedAsset = mockAssets.find(a => a.id === selectedId);
+  const selectedEntity = mockEntities.find(e => e.id === selectedId);
+  const selectedItem = selectedAsset || selectedEntity;
 
   return (
     <motion.div
@@ -40,121 +108,140 @@ export function TacticalMap() {
         </div>
       </div>
 
-      <div className="relative aspect-[16/9] tactical-grid bg-secondary/30">
-        {/* Fire zone */}
-        {fireZone && (
-          <div
-            className="absolute rounded-full bg-severity-critical/15 border border-severity-critical/30 animate-pulse-slow"
-            style={{
-              left: `${fireZone.location.x - 12}%`,
-              top: `${fireZone.location.y - 12}%`,
-              width: "24%",
-              height: "24%",
-            }}
-          >
-            <Flame className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-severity-critical/60" />
-          </div>
-        )}
+      <div className="relative aspect-[16/9]">
+        <MapContainer
+          center={MAP_CENTER}
+          zoom={MAP_ZOOM}
+          scrollWheelZoom={true}
+          zoomControl={false}
+          attributionControl={false}
+          className="h-full w-full z-0"
+          style={{ background: "hsl(222 47% 8%)" }}
+        >
+          <MapStyleController />
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+          />
 
-        {/* Flood zone */}
-        {floodZone && (
-          <div
-            className="absolute rounded-full bg-severity-info/10 border border-severity-info/30 animate-pulse-slow"
-            style={{
-              left: `${floodZone.location.x - 10}%`,
-              top: `${floodZone.location.y - 10}%`,
-              width: "20%",
-              height: "20%",
-            }}
-          >
-            <Droplets className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-severity-info/60" />
-          </div>
-        )}
-
-        {/* Infrastructure */}
-        {mockEntities.filter(e => e.type === "infrastructure").map(entity => (
-          <div
-            key={entity.id}
-            className="absolute group cursor-pointer"
-            style={{ left: `${entity.location.x}%`, top: `${entity.location.y}%` }}
-            onClick={() => setSelectedId(entity.id === selectedId ? null : entity.id)}
-          >
-            <div className={`-translate-x-1/2 -translate-y-1/2 p-1.5 rounded border ${entity.status === "Damaged" ? "border-severity-high/50 bg-severity-high/10" : "border-border/50 bg-card/60"}`}>
-              <Building2 className={`h-3 w-3 ${entity.status === "Damaged" ? "text-severity-high" : "text-muted-foreground"}`} />
-            </div>
-            <div className="absolute left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity bg-card border border-border rounded px-2 py-1 whitespace-nowrap z-10">
-              <p className="text-[10px] font-medium text-foreground">{entity.name}</p>
-              <p className="text-[9px] text-muted-foreground">{entity.status}</p>
-            </div>
-          </div>
-        ))}
-
-        {/* Assets */}
-        {mockAssets.map(asset => {
-          const Icon = assetIcons[asset.type] || Radio;
-          const color = statusColors[asset.status] || "bg-muted-foreground";
-          return (
-            <div
-              key={asset.id}
-              className="absolute group cursor-pointer"
-              style={{ left: `${asset.location.x}%`, top: `${asset.location.y}%` }}
-              onClick={() => setSelectedId(asset.id === selectedId ? null : asset.id)}
+          {/* Fire Zone */}
+          {fireZone && (
+            <Circle
+              center={[fireZone.location.y, fireZone.location.x]}
+              radius={800}
+              pathOptions={{
+                color: "#ef4444",
+                fillColor: "#ef4444",
+                fillOpacity: 0.15,
+                weight: 1.5,
+                dashArray: "6 4",
+              }}
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="-translate-x-1/2 -translate-y-1/2 relative"
-              >
-                <div className={`p-1.5 rounded-full border border-border/50 bg-card/80 backdrop-blur-sm ${selectedId === asset.id ? "ring-2 ring-primary" : ""}`}>
-                  <Icon className="h-3 w-3 text-foreground" />
+              <Popup className="tactical-popup">
+                <div className="text-xs">
+                  <p className="font-semibold text-red-400">{fireZone.name}</p>
+                  <p className="text-muted-foreground">Status: {fireZone.status}</p>
+                  <p className="text-muted-foreground">Area: {fireZone.attributes.area}</p>
+                  <p className="text-muted-foreground">Intensity: {String(fireZone.attributes.intensity)}</p>
                 </div>
-                <div className={`absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ${color} border border-card`} />
-              </motion.div>
-              <div className="absolute left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity bg-card border border-border rounded px-2 py-1 whitespace-nowrap z-10">
-                <p className="text-[10px] font-medium text-foreground">{asset.name}</p>
-                <p className="text-[9px] text-muted-foreground">{asset.status} • {asset.batteryLevel}%</p>
-              </div>
-            </div>
-          );
-        })}
+              </Popup>
+            </Circle>
+          )}
 
-        {/* Grid overlay labels */}
-        <div className="absolute bottom-2 left-2 text-[9px] text-muted-foreground/40 font-mono">
-          GRID REF: 42.3°N 71.1°W
-        </div>
-        <div className="absolute top-2 right-2 text-[9px] text-muted-foreground/40 font-mono">
-          SCALE: 1:50000
-        </div>
+          {/* Flood Zone */}
+          {floodZone && (
+            <Circle
+              center={[floodZone.location.y, floodZone.location.x]}
+              radius={600}
+              pathOptions={{
+                color: "#3b82f6",
+                fillColor: "#3b82f6",
+                fillOpacity: 0.12,
+                weight: 1.5,
+                dashArray: "6 4",
+              }}
+            >
+              <Popup className="tactical-popup">
+                <div className="text-xs">
+                  <p className="font-semibold text-blue-400">{floodZone.name}</p>
+                  <p className="text-muted-foreground">Status: {floodZone.status}</p>
+                  <p className="text-muted-foreground">Water Level: {String(floodZone.attributes.waterLevel)}</p>
+                  <p className="text-muted-foreground">Time to Breach: {String(floodZone.attributes.timeToBreech)}</p>
+                </div>
+              </Popup>
+            </Circle>
+          )}
+
+          {/* Infrastructure */}
+          {mockEntities.filter(e => e.type === "infrastructure").map(entity => (
+            <Marker
+              key={entity.id}
+              position={[entity.location.y, entity.location.x]}
+              icon={createInfraIcon(entity.status === "Damaged")}
+              eventHandlers={{
+                click: () => setSelectedId(entity.id === selectedId ? null : entity.id),
+              }}
+            >
+              <Popup className="tactical-popup">
+                <div className="text-xs">
+                  <p className="font-semibold">{entity.name}</p>
+                  <p className="text-muted-foreground">{entity.subType} • {entity.status}</p>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* Assets */}
+          {mockAssets.map(asset => {
+            const Icon = assetIcons[asset.type] || Radio;
+            const color = statusColors[asset.status] || "#6b7280";
+            return (
+              <Marker
+                key={asset.id}
+                position={[asset.location.y, asset.location.x]}
+                icon={createDivIcon(Icon, color, selectedId === asset.id)}
+                eventHandlers={{
+                  click: () => setSelectedId(asset.id === selectedId ? null : asset.id),
+                }}
+              >
+                <Popup className="tactical-popup">
+                  <div className="text-xs">
+                    <p className="font-semibold">{asset.name}</p>
+                    <p className="text-muted-foreground">{asset.type.toUpperCase()} • {asset.status}</p>
+                    <p className="text-muted-foreground">Battery: {asset.batteryLevel}%</p>
+                    {asset.assignedMission && (
+                      <p className="text-primary mt-1">Mission Active</p>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MapContainer>
       </div>
 
-      {/* Selected info */}
-      {selectedId && (
+      {/* Selected info bar */}
+      {selectedItem && (
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           className="border-t border-border/50 p-3 bg-secondary/30"
         >
-          {(() => {
-            const asset = mockAssets.find(a => a.id === selectedId);
-            const entity = mockEntities.find(e => e.id === selectedId);
-            const item = asset || entity;
-            if (!item) return null;
-            return (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-foreground">{item.name}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {asset ? `${asset.type.toUpperCase()} • ${asset.status} • Battery: ${asset.batteryLevel}%` : `${(entity as any)?.subType} • ${entity?.status}`}
-                  </p>
-                </div>
-                {asset?.assignedMission && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                    Mission Active
-                  </span>
-                )}
-              </div>
-            );
-          })()}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-foreground">{selectedItem.name}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {selectedAsset
+                  ? `${selectedAsset.type.toUpperCase()} • ${selectedAsset.status} • Battery: ${selectedAsset.batteryLevel}%`
+                  : `${selectedEntity?.subType} • ${selectedEntity?.status}`}
+              </p>
+            </div>
+            {selectedAsset?.assignedMission && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                Mission Active
+              </span>
+            )}
+          </div>
         </motion.div>
       )}
     </motion.div>

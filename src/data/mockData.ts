@@ -90,18 +90,18 @@ export const mockAlerts: Alert[] = [
 ];
 
 export const mockAssets: Asset[] = [
-  { id: "d1", name: "Recon UAV Alpha", type: "uav", status: "active", batteryLevel: 87, location: { x: 35, y: 25 }, assignedMission: "m1", capabilities: ["thermal", "video", "mapping"] },
-  { id: "d2", name: "Strike UAV Bravo", type: "uav", status: "active", batteryLevel: 62, location: { x: 65, y: 40 }, assignedMission: "m1", capabilities: ["thermal", "video", "payload"] },
-  { id: "d3", name: "Survey UAV Charlie", type: "uav", status: "idle", batteryLevel: 95, location: { x: 20, y: 60 }, capabilities: ["lidar", "mapping", "photo"] },
-  { id: "d4", name: "Recon UAV Delta", type: "uav", status: "offline", batteryLevel: 12, location: { x: 50, y: 30 }, capabilities: ["thermal", "video"] },
-  { id: "r1", name: "Rescue Bot R-01", type: "robot", status: "deployed", batteryLevel: 74, location: { x: 45, y: 55 }, assignedMission: "m2", capabilities: ["lifting", "cutting", "search"] },
-  { id: "r2", name: "Rescue Bot R-02", type: "robot", status: "active", batteryLevel: 56, location: { x: 55, y: 50 }, assignedMission: "m2", capabilities: ["lifting", "search", "medical"] },
-  { id: "g1", name: "Patrol UGV-01", type: "ugv", status: "active", batteryLevel: 91, location: { x: 30, y: 70 }, assignedMission: "m3", capabilities: ["patrol", "surveillance", "transport"] },
-  { id: "g2", name: "Supply UGV-02", type: "ugv", status: "idle", batteryLevel: 100, location: { x: 15, y: 80 }, capabilities: ["transport", "supply"] },
-  { id: "v1", name: "Command Vehicle CV-1", type: "vehicle", status: "active", batteryLevel: 80, location: { x: 25, y: 45 }, assignedMission: "m1", capabilities: ["command", "comms", "medical"] },
-  { id: "s1", name: "Thermal Sensor Array", type: "sensor", status: "active", batteryLevel: 99, location: { x: 70, y: 20 }, capabilities: ["thermal", "motion"] },
-  { id: "c1", name: "Surveillance Cam Net", type: "camera", status: "active", batteryLevel: 100, location: { x: 40, y: 15 }, capabilities: ["video", "night-vision"] },
-  { id: "d5", name: "Cargo Drone Echo", type: "drone", status: "maintenance", batteryLevel: 45, location: { x: 10, y: 35 }, capabilities: ["cargo", "delivery"] },
+  { id: "d1", name: "Recon UAV Alpha", type: "uav", status: "active", batteryLevel: 87, location: { x: -71.06, y: 42.36 }, assignedMission: "m1", capabilities: ["thermal", "video", "mapping"] },
+  { id: "d2", name: "Strike UAV Bravo", type: "uav", status: "active", batteryLevel: 62, location: { x: -71.03, y: 42.345 }, assignedMission: "m1", capabilities: ["thermal", "video", "payload"] },
+  { id: "d3", name: "Survey UAV Charlie", type: "uav", status: "idle", batteryLevel: 95, location: { x: -71.08, y: 42.335 }, capabilities: ["lidar", "mapping", "photo"] },
+  { id: "d4", name: "Recon UAV Delta", type: "uav", status: "offline", batteryLevel: 12, location: { x: -71.045, y: 42.355 }, capabilities: ["thermal", "video"] },
+  { id: "r1", name: "Rescue Bot R-01", type: "robot", status: "deployed", batteryLevel: 74, location: { x: -71.05, y: 42.34 }, assignedMission: "m2", capabilities: ["lifting", "cutting", "search"] },
+  { id: "r2", name: "Rescue Bot R-02", type: "robot", status: "active", batteryLevel: 56, location: { x: -71.04, y: 42.342 }, assignedMission: "m2", capabilities: ["lifting", "search", "medical"] },
+  { id: "g1", name: "Patrol UGV-01", type: "ugv", status: "active", batteryLevel: 91, location: { x: -71.07, y: 42.33 }, assignedMission: "m3", capabilities: ["patrol", "surveillance", "transport"] },
+  { id: "g2", name: "Supply UGV-02", type: "ugv", status: "idle", batteryLevel: 100, location: { x: -71.09, y: 42.325 }, capabilities: ["transport", "supply"] },
+  { id: "v1", name: "Command Vehicle CV-1", type: "vehicle", status: "active", batteryLevel: 80, location: { x: -71.075, y: 42.345 }, assignedMission: "m1", capabilities: ["command", "comms", "medical"] },
+  { id: "s1", name: "Thermal Sensor Array", type: "sensor", status: "active", batteryLevel: 99, location: { x: -71.02, y: 42.365 }, capabilities: ["thermal", "motion"] },
+  { id: "c1", name: "Surveillance Cam Net", type: "camera", status: "active", batteryLevel: 100, location: { x: -71.05, y: 42.37 }, capabilities: ["video", "night-vision"] },
+  { id: "d5", name: "Cargo Drone Echo", type: "drone", status: "maintenance", batteryLevel: 45, location: { x: -71.095, y: 42.355 }, capabilities: ["cargo", "delivery"] },
 ];
 
 export const mockMissions: Mission[] = [
@@ -112,15 +112,15 @@ export const mockMissions: Mission[] = [
 ];
 
 export const mockEntities: Entity[] = [
-  { id: "p1", name: "Cdr. Sarah Chen", type: "person", subType: "Commander", status: "On Duty", location: { x: 25, y: 45 }, attributes: { organization: "FEMA", role: "Incident Commander", clearance: "Top Secret" }, relationships: [{ targetId: "m1", type: "commands" }, { targetId: "p2", type: "supervises" }] },
-  { id: "p2", name: "Lt. James Park", type: "person", subType: "Operator", status: "On Duty", location: { x: 30, y: 42 }, attributes: { organization: "FEMA", role: "Drone Operator", clearance: "Secret" }, relationships: [{ targetId: "d1", type: "operates" }, { targetId: "d2", type: "operates" }] },
-  { id: "p3", name: "Dr. Maria Santos", type: "person", subType: "Analyst", status: "On Duty", location: { x: 25, y: 48 }, attributes: { organization: "USGS", role: "Seismic Analyst", specialization: "Structural Assessment" }, relationships: [{ targetId: "i2", type: "monitors" }] },
-  { id: "p4", name: "Sgt. Mike Torres", type: "person", subType: "First Responder", status: "Deployed", location: { x: 45, y: 55 }, attributes: { organization: "Fire Dept", role: "Squad Leader", unit: "Rescue Team Alpha" }, relationships: [{ targetId: "r1", type: "coordinates_with" }, { targetId: "m2", type: "assigned_to" }] },
-  { id: "i1", name: "City Hall Complex", type: "infrastructure", subType: "Building", status: "Intact", location: { x: 40, y: 30 }, attributes: { capacity: 500, floors: 8, type: "Government" }, relationships: [] },
-  { id: "i2", name: "Highway Bridge B-12", type: "infrastructure", subType: "Bridge", status: "Damaged", location: { x: 60, y: 45 }, attributes: { span: "120m", loadCapacity: "40t", condition: "Compromised" }, relationships: [{ targetId: "a3", type: "source_of" }] },
-  { id: "i3", name: "Power Station PS-1", type: "infrastructure", subType: "Power Station", status: "Operational", location: { x: 75, y: 65 }, attributes: { output: "500MW", fuelType: "Natural Gas", backupPower: "Yes" }, relationships: [] },
-  { id: "e1", name: "Fire Zone Alpha", type: "environment", subType: "Fire Zone", status: "Active", location: { x: 55, y: 25 }, attributes: { area: "2.5 sq km", intensity: "High", spreadRate: "NE at 5km/h" }, relationships: [{ targetId: "m1", type: "target_of" }] },
-  { id: "e2", name: "Flood Risk Zone", type: "environment", subType: "Flood Zone", status: "Warning", location: { x: 35, y: 75 }, attributes: { area: "1.8 sq km", waterLevel: "Rising", timeToBreech: "2h" }, relationships: [{ targetId: "m4", type: "target_of" }] },
+  { id: "p1", name: "Cdr. Sarah Chen", type: "person", subType: "Commander", status: "On Duty", location: { x: -71.075, y: 42.345 }, attributes: { organization: "FEMA", role: "Incident Commander", clearance: "Top Secret" }, relationships: [{ targetId: "m1", type: "commands" }, { targetId: "p2", type: "supervises" }] },
+  { id: "p2", name: "Lt. James Park", type: "person", subType: "Operator", status: "On Duty", location: { x: -71.07, y: 42.348 }, attributes: { organization: "FEMA", role: "Drone Operator", clearance: "Secret" }, relationships: [{ targetId: "d1", type: "operates" }, { targetId: "d2", type: "operates" }] },
+  { id: "p3", name: "Dr. Maria Santos", type: "person", subType: "Analyst", status: "On Duty", location: { x: -71.076, y: 42.343 }, attributes: { organization: "USGS", role: "Seismic Analyst", specialization: "Structural Assessment" }, relationships: [{ targetId: "i2", type: "monitors" }] },
+  { id: "p4", name: "Sgt. Mike Torres", type: "person", subType: "First Responder", status: "Deployed", location: { x: -71.05, y: 42.34 }, attributes: { organization: "Fire Dept", role: "Squad Leader", unit: "Rescue Team Alpha" }, relationships: [{ targetId: "r1", type: "coordinates_with" }, { targetId: "m2", type: "assigned_to" }] },
+  { id: "i1", name: "City Hall Complex", type: "infrastructure", subType: "Building", status: "Intact", location: { x: -71.055, y: 42.355 }, attributes: { capacity: 500, floors: 8, type: "Government" }, relationships: [] },
+  { id: "i2", name: "Highway Bridge B-12", type: "infrastructure", subType: "Bridge", status: "Damaged", location: { x: -71.035, y: 42.345 }, attributes: { span: "120m", loadCapacity: "40t", condition: "Compromised" }, relationships: [{ targetId: "a3", type: "source_of" }] },
+  { id: "i3", name: "Power Station PS-1", type: "infrastructure", subType: "Power Station", status: "Operational", location: { x: -71.015, y: 42.33 }, attributes: { output: "500MW", fuelType: "Natural Gas", backupPower: "Yes" }, relationships: [] },
+  { id: "e1", name: "Fire Zone Alpha", type: "environment", subType: "Fire Zone", status: "Active", location: { x: -71.04, y: 42.36 }, attributes: { area: "2.5 sq km", intensity: "High", spreadRate: "NE at 5km/h" }, relationships: [{ targetId: "m1", type: "target_of" }] },
+  { id: "e2", name: "Flood Risk Zone", type: "environment", subType: "Flood Zone", status: "Warning", location: { x: -71.07, y: 42.325 }, attributes: { area: "1.8 sq km", waterLevel: "Rising", timeToBreech: "2h" }, relationships: [{ targetId: "m4", type: "target_of" }] },
 ];
 
 export const mockTimeline: TimelineEvent[] = [
