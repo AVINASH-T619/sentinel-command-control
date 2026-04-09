@@ -95,8 +95,8 @@ export function TacticalMap() {
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-severity-low" /> Active</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-severity-medium" /> Idle</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-severity-critical" /> Offline</span>
-          <span className="flex items-center gap-1"><Flame className="h-2.5 w-2.5 text-severity-critical" /> Fire</span>
-          <span className="flex items-center gap-1"><Droplets className="h-2.5 w-2.5 text-severity-info" /> Flood</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 text-severity-critical">🔥</span> Fire</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 text-severity-info">💧</span> Flood</span>
         </div>
       </div>
 
@@ -185,13 +185,12 @@ export function TacticalMap() {
 
           {/* Assets */}
           {mockAssets.map(asset => {
-            const Icon = assetIcons[asset.type] || Radio;
             const color = statusColors[asset.status] || "#6b7280";
             return (
               <Marker
                 key={asset.id}
                 position={[asset.location.y, asset.location.x]}
-                icon={createDivIcon(Icon, color, selectedId === asset.id)}
+                icon={createDivIcon(asset.type, color, selectedId === asset.id)}
                 eventHandlers={{
                   click: () => setSelectedId(asset.id === selectedId ? null : asset.id),
                 }}
