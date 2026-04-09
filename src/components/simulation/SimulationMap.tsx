@@ -2,8 +2,6 @@ import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { renderToStaticMarkup } from "react-dom/server";
-import { Plane, Bot, Truck, Car, Radio, Camera } from "lucide-react";
 import type { PlacedEntity } from "@/pages/Simulations";
 import type { EntityState, PatrolRoute, HazardZone, Waypoint } from "@/lib/simulation/engine";
 import type { AssetType } from "@/data/mockData";
@@ -11,9 +9,14 @@ import type { AssetType } from "@/data/mockData";
 const MAP_CENTER: [number, number] = [42.347, -71.055];
 const MAP_ZOOM = 13;
 
-const assetIcons: Record<string, React.ElementType> = {
-  uav: Plane, drone: Plane, robot: Bot, ugv: Truck,
-  vehicle: Car, sensor: Radio, camera: Camera,
+const svgIcons: Record<string, string> = {
+  uav: '<path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.8.3 1.1L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.7.5 1.1.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  drone: '<path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.8.3 1.1L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.7.5 1.1.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  robot: '<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/>',
+  ugv: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  vehicle: '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+  sensor: '<path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
 };
 
 const typeColors: Record<string, string> = {
@@ -30,23 +33,13 @@ const hazardColors: Record<string, { stroke: string; fill: string }> = {
 };
 
 function createEntityIcon(type: AssetType, status?: string) {
-  const IconComponent = assetIcons[type] || Radio;
+  const svgPath = svgIcons[type] || svgIcons.sensor;
   const color = typeColors[type] || "#22c55e";
   const isPatrolling = status === "patrolling";
-  const markup = renderToStaticMarkup(
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center",
-      width: 32, height: 32, borderRadius: "50%",
-      background: "hsl(222 47% 11% / 0.9)", border: `2px solid ${color}`,
-      boxShadow: isPatrolling ? `0 0 12px ${color}90, 0 0 24px ${color}40` : `0 0 8px ${color}60`,
-      cursor: "grab",
-      transition: "box-shadow 0.3s ease",
-    }}>
-      <IconComponent style={{ width: 16, height: 16, color }} />
-    </div>
-  );
+  const shadow = isPatrolling ? `0 0 12px ${color}90, 0 0 24px ${color}40` : `0 0 8px ${color}60`;
+  const html = `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:hsl(222 47% 11% / 0.9);border:2px solid ${color};box-shadow:${shadow};cursor:grab"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgPath}</svg></div>`;
   return L.divIcon({
-    html: markup,
+    html,
     className: "custom-leaflet-icon",
     iconSize: [32, 32],
     iconAnchor: [16, 16],
@@ -55,19 +48,9 @@ function createEntityIcon(type: AssetType, status?: string) {
 }
 
 function createWaypointIcon(index: number) {
-  const markup = renderToStaticMarkup(
-    <div style={{
-      width: 14, height: 14, borderRadius: "50%",
-      background: "hsl(195 85% 50% / 0.3)",
-      border: "1.5px solid hsl(195 85% 50% / 0.6)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: "7px", color: "hsl(195 85% 60%)", fontWeight: 600,
-    }}>
-      {index + 1}
-    </div>
-  );
+  const html = `<div style="width:14px;height:14px;border-radius:50%;background:hsl(195 85% 50% / 0.3);border:1.5px solid hsl(195 85% 50% / 0.6);display:flex;align-items:center;justify-content:center;font-size:7px;color:hsl(195 85% 60%);font-weight:600">${index + 1}</div>`;
   return L.divIcon({
-    html: markup,
+    html,
     className: "custom-leaflet-icon",
     iconSize: [14, 14],
     iconAnchor: [7, 7],
