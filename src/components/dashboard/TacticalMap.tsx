@@ -4,8 +4,6 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from "react-le
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { mockAssets, mockEntities } from "@/data/mockData";
-import { Plane, Bot, Truck, Car, Radio, Camera, Flame, Droplets, Building2 } from "lucide-react";
-import { renderToStaticMarkup } from "react-dom/server";
 
 // Fix default marker icon issue in leaflet + bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -18,9 +16,19 @@ L.Icon.Default.mergeOptions({
 const MAP_CENTER: [number, number] = [42.347, -71.055];
 const MAP_ZOOM = 13;
 
-const assetIcons: Record<string, React.ElementType> = {
-  uav: Plane, drone: Plane, robot: Bot, ugv: Truck,
-  vehicle: Car, sensor: Radio, camera: Camera,
+const svgIcons: Record<string, string> = {
+  uav: '<path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.8.3 1.1L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.7.5 1.1.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  drone: '<path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.8.3 1.1L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.7.5 1.1.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  robot: '<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>',
+  ugv: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  vehicle: '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+  sensor: '<path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+};
+
+const typeColors: Record<string, string> = {
+  uav: "#22c55e", drone: "#22c55e", robot: "#f59e0b",
+  ugv: "#8b5cf6", vehicle: "#3b82f6", sensor: "#06b6d4", camera: "#ec4899",
 };
 
 const statusColors: Record<string, string> = {
@@ -29,19 +37,11 @@ const statusColors: Record<string, string> = {
   maintenance: "#6b7280",
 };
 
-function createDivIcon(IconComponent: React.ElementType, color: string, isSelected: boolean) {
-  const markup = renderToStaticMarkup(
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center",
-      width: 28, height: 28, borderRadius: "50%",
-      background: "hsl(222 47% 11% / 0.9)", border: `2px solid ${color}`,
-      boxShadow: isSelected ? `0 0 12px ${color}` : `0 0 6px ${color}40`,
-    }}>
-      <IconComponent style={{ width: 14, height: 14, color }} />
-    </div>
-  );
+function createDivIcon(type: string, color: string, isSelected: boolean) {
+  const svgPath = svgIcons[type] || svgIcons.sensor;
+  const html = `<div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:hsl(222 47% 11% / 0.9);border:2px solid ${color};box-shadow:${isSelected ? `0 0 12px ${color}` : `0 0 6px ${color}40`}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgPath}</svg></div>`;
   return L.divIcon({
-    html: markup,
+    html,
     className: "custom-leaflet-icon",
     iconSize: [28, 28],
     iconAnchor: [14, 14],
@@ -51,18 +51,10 @@ function createDivIcon(IconComponent: React.ElementType, color: string, isSelect
 
 function createInfraIcon(isDamaged: boolean) {
   const color = isDamaged ? "#f97316" : "#94a3b8";
-  const markup = renderToStaticMarkup(
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center",
-      width: 24, height: 24, borderRadius: 4,
-      background: isDamaged ? "hsl(24 95% 53% / 0.15)" : "hsl(222 47% 11% / 0.8)",
-      border: `1.5px solid ${color}80`,
-    }}>
-      <Building2 style={{ width: 12, height: 12, color }} />
-    </div>
-  );
+  const bg = isDamaged ? "hsl(24 95% 53% / 0.15)" : "hsl(222 47% 11% / 0.8)";
+  const html = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:4px;background:${bg};border:1.5px solid ${color}80"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg></div>`;
   return L.divIcon({
-    html: markup,
+    html,
     className: "custom-leaflet-icon",
     iconSize: [24, 24],
     iconAnchor: [12, 12],
